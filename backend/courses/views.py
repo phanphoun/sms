@@ -17,16 +17,23 @@ from accounts.utils import success_response, error_response
 class CourseListCreateView(generics.ListCreateAPIView):
     """
     API endpoint to list and create courses
-    GET /api/courses/
-    POST /api/courses/
+    GET /api/courses/ - All authenticated users can view
+    POST /api/courses/ - Only admins and teachers can create
     """
     queryset = Course.objects.select_related('teacher__user').all()
-    permission_classes = [IsAdminOrTeacher]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['semester', 'academic_year', 'status', 'teacher']
     search_fields = ['course_code', 'course_name', 'teacher__user__first_name', 'teacher__user__last_name']
     ordering_fields = ['created_at', 'course_code']
     ordering = ['-created_at']
+    
+    def get_permissions(self):
+        """
+        Students can view courses, but only admins/teachers can create
+        """
+        if self.request.method == 'POST':
+            return [IsAdminOrTeacher()]
+        return []  # Allow all authenticated users to view (handled by IsAuthenticated in settings)
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -78,13 +85,20 @@ class CourseListCreateView(generics.ListCreateAPIView):
 class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint to get, update, or delete a specific course
-    GET /api/courses/<id>/
-    PUT /api/courses/<id>/
-    PATCH /api/courses/<id>/
-    DELETE /api/courses/<id>/
+    GET /api/courses/<id>/ - All authenticated users can view
+    PUT /api/courses/<id>/ - Only admins and teachers can update
+    PATCH /api/courses/<id>/ - Only admins and teachers can update
+    DELETE /api/courses/<id>/ - Only admins and teachers can delete
     """
     queryset = Course.objects.select_related('teacher__user').all()
-    permission_classes = [IsAdminOrTeacher]
+    
+    def get_permissions(self):
+        """
+        Students can view course details, but only admins/teachers can edit/delete
+        """
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [IsAdminOrTeacher()]
+        return []  # Allow all authenticated users to view
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -138,15 +152,33 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
 class EnrollmentListCreateView(generics.ListCreateAPIView):
     """
     API endpoint to list and create enrollments
-    GET /api/courses/enrollments/
-    POST /api/courses/enrollments/
+    GET /api/courses/enrollments/ - All authenticated users (students see their own)
+    POST /api/courses/enrollments/ - All authenticated users (students can enroll)
     """
     queryset = Enrollment.objects.select_related('student__user', 'course__teacher__user').all()
-    permission_classes = [IsAdminOrTeacher]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['status', 'course', 'student']
     ordering_fields = ['enrollment_date', 'grade_points']
     ordering = ['-enrollment_date']
+    
+    def get_queryset(self):
+        """
+        Students see only their enrollments, teachers/admins see all
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        if user.is_student():
+            # Students only see their own enrollments
+            from students.models import Student
+            try:
+                student = Student.objects.get(user=user)
+                return queryset.filter(student=student)
+            except Student.DoesNotExist:
+                return queryset.none()
+        
+        # Admins and teachers see all enrollments
+        return queryset
     
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -199,13 +231,39 @@ class EnrollmentListCreateView(generics.ListCreateAPIView):
 class EnrollmentDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint to get, update, or delete a specific enrollment
-    GET /api/courses/enrollments/<id>/
-    PUT /api/courses/enrollments/<id>/
-    PATCH /api/courses/enrollments/<id>/
-    DELETE /api/courses/enrollments/<id>/
+    GET /api/courses/enrollments/<id>/ - All authenticated users (students see their own)
+    PUT /api/courses/enrollments/<id>/ - Only admins and teachers
+    PATCH /api/courses/enrollments/<id>/ - Only admins and teachers
+    DELETE /api/courses/enrollments/<id>/ - Only admins and teachers
     """
     queryset = Enrollment.objects.select_related('student__user', 'course__teacher__user').all()
-    permission_classes = [IsAdminOrTeacher]
+    
+    def get_permissions(self):
+        """
+        Students can view their own enrollment details, but only admins/teachers can update/delete
+        """
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [IsAdminOrTeacher()]
+        return []  # Allow all authenticated users to view (filtered by queryset)
+    
+    def get_queryset(self):
+        """
+        Students see only their enrollments, teachers/admins see all
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        if user.is_student():
+            # Students only see their own enrollments
+            from students.models import Student
+            try:
+                student = Student.objects.get(user=user)
+                return queryset.filter(student=student)
+            except Student.DoesNotExist:
+                return queryset.none()
+        
+        # Admins and teachers see all enrollments
+        return queryset
     
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
