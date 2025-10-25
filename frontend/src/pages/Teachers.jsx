@@ -18,6 +18,7 @@ const Teachers = () => {
       setTeachers(response.data.data || response.data.results || [])
     } catch (error) {
       console.error('Error fetching teachers:', error)
+      
     } finally {
       setLoading(false)
     }

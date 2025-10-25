@@ -4,8 +4,8 @@ import PrivateRoute from './components/PrivateRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
-import Students from './pages/Students'
-import Teachers from './pages/Teachers'
+import Students from './pages/StudentsEnhanced'
+import Teachers from './pages/TeachersEnhanced'
 import Courses from './pages/Courses'
 
 function App() {
