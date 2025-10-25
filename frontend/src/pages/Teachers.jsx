@@ -17,8 +17,7 @@ const Teachers = () => {
       const response = await api.get('/teachers/')
       setTeachers(response.data.data || response.data.results || [])
     } catch (error) {
-      console.error('Error fetching teachers:', error)
-      
+      alert('Failed to fetch teachers')
     } finally {
       setLoading(false)
     }

@@ -17,7 +17,7 @@ const Students = () => {
       const response = await api.get('/students/')
       setStudents(response.data.data || response.data.results || [])
     } catch (error) {
-      console.error('Error fetching students:', error)
+      alert('Failed to fetch students')
     } finally {
       setLoading(false)
     }

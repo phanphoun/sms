@@ -17,7 +17,7 @@ const Courses = () => {
       const response = await api.get('/courses/')
       setCourses(response.data.data || response.data.results || [])
     } catch (error) {
-      console.error('Error fetching courses:', error)
+      alert('Failed to fetch courses')
     } finally {
       setLoading(false)
     }

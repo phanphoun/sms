@@ -32,7 +32,6 @@ const TeachersEnhanced = () => {
       const response = await api.get('/teachers/')
       setTeachers(response.data.data || response.data.results || [])
     } catch (error) {
-      console.error('Error fetching teachers:', error)
       alert('Failed to fetch teachers')
     } finally {
       setLoading(false)
@@ -89,7 +88,6 @@ const TeachersEnhanced = () => {
       setShowModal(false)
       fetchTeachers()
     } catch (error) {
-      console.error('Error saving teacher:', error)
       alert(error.response?.data?.error?.message || 'Failed to save teacher')
     }
   }
@@ -102,7 +100,6 @@ const TeachersEnhanced = () => {
       alert('Teacher deleted successfully!')
       fetchTeachers()
     } catch (error) {
-      console.error('Error deleting teacher:', error)
       alert('Failed to delete teacher')
     }
   }
